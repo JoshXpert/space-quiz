@@ -261,27 +261,53 @@
       { category: "The next chapter", question: "What is the main lunar exploration goal of NASA's Artemis program?", answers: ["Move the Moon closer to Earth", "Build a telescope on Jupiter", "Return humans to the Moon and establish a sustained presence", "Send the first satellite into Earth orbit"], correct: 2, fact: "Artemis aims to return humans to the Moon and develop a sustained presence, helping prepare for future crewed missions to Mars." }
     ];
     const $ = id => document.getElementById(id);
+    let missionQuestions = [];
     let current = 0;
     let score = 0;
     let answered = false;
 
+    function shuffle(items) {
+      const shuffled = [...items];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    function startMission(focus = false) {
+      missionQuestions = shuffle(questions).map(item => {
+        const answerOrder = shuffle(item.answers.map((_, index) => index));
+        return {
+          ...item,
+          answers: answerOrder.map(index => item.answers[index]),
+          correct: answerOrder.indexOf(item.correct)
+        };
+      });
+      current = 0;
+      score = 0;
+      $("results").hidden = true;
+      $("quiz").hidden = false;
+      renderQuestion(focus);
+    }
+
     function updateProgress(completed) {
-      $("progress-fill").style.width = `${completed / questions.length * 100}%`;
+      $("progress-fill").style.width = `${completed / missionQuestions.length * 100}%`;
       $("progress").setAttribute("aria-valuenow", completed);
-      $("progress").setAttribute("aria-valuetext", `${completed} of ${questions.length} questions answered`);
+      $("progress").setAttribute("aria-valuetext", `${completed} of ${missionQuestions.length} questions answered`);
       $("score").textContent = score;
     }
 
     function renderQuestion(focus = false) {
       answered = false;
-      const item = questions[current];
-      $("question-count").innerHTML = `Question ${current + 1} <span>/ ${questions.length}</span>`;
+      const item = missionQuestions[current];
+      $("question-count").innerHTML = `Question ${current + 1} <span>/ ${missionQuestions.length}</span>`;
       $("category").textContent = item.category;
       $("question").textContent = item.question;
       $("answers").replaceChildren();
       $("feedback").hidden = true;
       $("next").disabled = true;
-      $("next-label").textContent = current === questions.length - 1 ? "See results" : "Next question";
+      $("next-label").textContent = current === missionQuestions.length - 1 ? "See results" : "Next question";
       $("step-note").textContent = current === 0 ? "Every great mission starts somewhere." : "A little wiser. A little farther.";
       item.answers.forEach((text, index) => {
         const button = document.createElement("button");
@@ -302,7 +328,7 @@
     function selectAnswer(selected) {
       if (answered) return;
       answered = true;
-      const item = questions[current];
+      const item = missionQuestions[current];
       const correct = selected === item.correct;
       if (correct) score++;
       Array.from($("answers").children).forEach((button, index) => {
@@ -344,25 +370,19 @@
       $("reaction").setAttribute("aria-label", result.label);
       $("result-title").textContent = result.title;
       $("result-message").textContent = result.message;
-      $("result-score").innerHTML = `${score}<span> / ${questions.length}</span>`;
-      $("result-stat").textContent = `${score * 10}% accuracy · ${questions.length} questions explored · Infinite possibilities`;
+      $("result-score").innerHTML = `${score}<span> / ${missionQuestions.length}</span>`;
+      $("result-stat").textContent = `${score * 10}% accuracy · ${missionQuestions.length} questions explored · Infinite possibilities`;
       $("result-title").focus();
     }
 
     $("next").addEventListener("click", () => {
       if (!answered) return;
       current++;
-      if (current === questions.length) showResults();
+      if (current === missionQuestions.length) showResults();
       else renderQuestion(true);
     });
-    $("restart").addEventListener("click", () => {
-      current = 0;
-      score = 0;
-      $("results").hidden = true;
-      $("quiz").hidden = false;
-      renderQuestion(true);
-    });
-    renderQuestion();
+    $("restart").addEventListener("click", () => startMission(true));
+    startMission();
   </script>
 </body>
 </html>
